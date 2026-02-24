@@ -91,6 +91,10 @@ class AuthController extends ChangeNotifier {
     print('════════════════════════════════════════\n');
   }
 
+  // ---------------------------------------------------------------------------
+  // LOGIN WITH PASSWORD
+  // ---------------------------------------------------------------------------
+
   /// LOGIN: Authenticates with Backend API
   Future<bool> login(String email, String password) async {
     print('');
@@ -104,7 +108,8 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final loggedInUser = await _userRepo.login(email: email, password: password); // ✅ Renamed variable
+      final loggedInUser =
+      await _userRepo.login(email: email, password: password);
 
       print('[AUTH_CONTROLLER] Login response received');
       print('  User ID: ${loggedInUser.id}');
@@ -121,7 +126,6 @@ class AuthController extends ChangeNotifier {
         return false;
       }
 
-      // ✅ Now this correctly assigns to the class field
       _user = loggedInUser;
 
       // SAVE SESSION
@@ -172,8 +176,11 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // SIGNUP (NO AUTO-LOGIN) + FLOW WRAPPER
+  // ---------------------------------------------------------------------------
 
-  /// BASIC SIGNUP
+  /// BASIC SIGNUP (register.php already sends email OTP)
   Future<bool> signupBasic({
     required String name,
     required String email,
@@ -199,10 +206,11 @@ class AuthController extends ChangeNotifier {
         phone: phone,
         role: 'delivery',
       );
+
       _loading = false;
       _error = null;
       notifyListeners();
-      print('✅ [AUTH_CONTROLLER] Basic signup successful!');
+      print('✅ [AUTH_CONTROLLER] Basic signup successful (OTP sent)!');
       print('════════════════════════════════════════\n');
       return true;
     } catch (e) {
@@ -223,7 +231,7 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// FULL SIGNUP WITH AUTO-LOGIN
+  /// FULL SIGNUP WITH AUTO-LOGIN (optionally still used elsewhere)
   Future<bool> signupWithKycLater({
     required String name,
     required String email,
@@ -247,25 +255,234 @@ class AuthController extends ChangeNotifier {
       return false;
     }
 
-    print('✅ [AUTH_CONTROLLER] Account created successfully');
-    print('🔐 [AUTH_CONTROLLER] Step 2: Auto-logging in...');
-
-    final loginSuccess = await login(email, password);
-    if (!loginSuccess) {
-      print('⚠️ [AUTH_CONTROLLER] Auto-login failed after signup');
-      _error =
-      'Account created but login failed. Please login manually.';
-      notifyListeners();
-      print('════════════════════════════════════════\n');
-      return false;
-    }
-
-    print('✅ [AUTH_CONTROLLER] Full signup completed!');
-    print(' User ID: ${_user?.id}');
-    print(' Ready for KYC prompt');
+    // In new flow you probably redirect to EmailVerifyPage instead of auto-login.
+    print('✅ [AUTH_CONTROLLER] Account created successfully (pending email verify)');
     print('════════════════════════════════════════\n');
     return true;
   }
+
+  // ---------------------------------------------------------------------------
+  // EMAIL VERIFICATION AFTER SIGNUP
+  // ---------------------------------------------------------------------------
+
+  Future<bool> verifyEmailOtp(String email, String otp) async {
+    print('\n════════════════════════════════════════');
+    print('📧 [AUTH_CONTROLLER] Verifying signup email OTP...');
+    print('════════════════════════════════════════');
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final verifiedUser =
+      await _userRepo.verifyEmailWithOtp(email: email, otp: otp);
+
+      if (verifiedUser.id.isEmpty) {
+        throw Exception('Invalid user data after verification');
+      }
+
+      _user = verifiedUser;
+
+      print('[AUTH_CONTROLLER] Saving verified user session to prefs...');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('userId', verifiedUser.id);
+      await prefs.setString('userEmail', verifiedUser.email);
+      await prefs.setString('userName', verifiedUser.name);
+      await prefs.setString('userPhone', verifiedUser.phone);
+      await prefs.setString('userProfilePic', verifiedUser.profilePic);
+      await prefs.setString('userRole', verifiedUser.role);
+
+      _userRepo.restoreUserSession(verifiedUser);
+
+      _loading = false;
+      _error = null;
+      _initialized = true;
+      notifyListeners();
+
+      print('✅ [AUTH_CONTROLLER] Email verification + login complete');
+      print('════════════════════════════════════════\n');
+      return true;
+    } catch (e) {
+      _loading = false;
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception:')) {
+        errorMsg = errorMsg.replaceFirst('Exception:', '').trim();
+      }
+      _error = errorMsg;
+      notifyListeners();
+      print('❌ [AUTH_CONTROLLER] Email verification failed: $errorMsg');
+      print('════════════════════════════════════════\n');
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // LOGIN WITH EMAIL OTP
+  // ---------------------------------------------------------------------------
+
+  Future<bool> requestLoginOtp(String email) async {
+    print('\n════════════════════════════════════════');
+    print('📨 [AUTH_CONTROLLER] Requesting login OTP...');
+    print('════════════════════════════════════════');
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _userRepo.requestLoginOtp(email: email);
+      _loading = false;
+      _error = null;
+      notifyListeners();
+      print('✅ [AUTH_CONTROLLER] Login OTP requested successfully');
+      print('════════════════════════════════════════\n');
+      return true;
+    } catch (e) {
+      _loading = false;
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception:')) {
+        errorMsg = errorMsg.replaceFirst('Exception:', '').trim();
+      }
+      _error = errorMsg;
+      notifyListeners();
+      print('❌ [AUTH_CONTROLLER] Request login OTP failed: $errorMsg');
+      print('════════════════════════════════════════\n');
+      return false;
+    }
+  }
+
+  Future<bool> loginWithOtp(String email, String otp) async {
+    print('\n════════════════════════════════════════');
+    print('🔐 [AUTH_CONTROLLER] Verifying login OTP...');
+    print('════════════════════════════════════════');
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final loggedInUser =
+      await _userRepo.verifyLoginOtp(email: email, otp: otp);
+
+      if (loggedInUser.id.isEmpty) {
+        throw Exception('Login failed: Invalid user data from server');
+      }
+
+      _user = loggedInUser;
+
+      print('[AUTH_CONTROLLER] Saving OTP-login session to prefs...');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('userId', loggedInUser.id);
+      await prefs.setString('userEmail', loggedInUser.email);
+      await prefs.setString('userName', loggedInUser.name);
+      await prefs.setString('userPhone', loggedInUser.phone);
+      await prefs.setString('userProfilePic', loggedInUser.profilePic);
+      await prefs.setString('userRole', loggedInUser.role);
+
+      _userRepo.restoreUserSession(loggedInUser);
+
+      _loading = false;
+      _error = null;
+      _initialized = true;
+      notifyListeners();
+
+      print('✅ [AUTH_CONTROLLER] Login via OTP successful');
+      print('════════════════════════════════════════\n');
+      return true;
+    } catch (e) {
+      _loading = false;
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception:')) {
+        errorMsg = errorMsg.replaceFirst('Exception:', '').trim();
+      }
+      _error = errorMsg;
+      notifyListeners();
+      print('❌ [AUTH_CONTROLLER] Login via OTP failed: $errorMsg');
+      print('════════════════════════════════════════\n');
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // FORGOT PASSWORD + RESET WITH OTP
+  // ---------------------------------------------------------------------------
+
+  Future<bool> requestForgotPasswordOtp(String email) async {
+    print('\n════════════════════════════════════════');
+    print('📨 [AUTH_CONTROLLER] Requesting forgot-password OTP...');
+    print('════════════════════════════════════════');
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _userRepo.requestPasswordResetOtp(email: email);
+      _loading = false;
+      _error = null;
+      notifyListeners();
+      print('✅ [AUTH_CONTROLLER] Forgot-password OTP requested');
+      print('════════════════════════════════════════\n');
+      return true;
+    } catch (e) {
+      _loading = false;
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception:')) {
+        errorMsg = errorMsg.replaceFirst('Exception:', '').trim();
+      }
+      _error = errorMsg;
+      notifyListeners();
+      print('❌ [AUTH_CONTROLLER] Request forgot-password OTP failed: $errorMsg');
+      print('════════════════════════════════════════\n');
+      return false;
+    }
+  }
+
+  Future<bool> resetPasswordWithOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    print('\n════════════════════════════════════════');
+    print('🔒 [AUTH_CONTROLLER] Resetting password with OTP...');
+    print('════════════════════════════════════════');
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _userRepo.resetPasswordWithOtp(
+        email: email,
+        otp: otp,
+        newPassword: newPassword,
+      );
+      _loading = false;
+      _error = null;
+      notifyListeners();
+      print('✅ [AUTH_CONTROLLER] Password reset successful');
+      print('════════════════════════════════════════\n');
+      return true;
+    } catch (e) {
+      _loading = false;
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception:')) {
+        errorMsg = errorMsg.replaceFirst('Exception:', '').trim();
+      }
+      _error = errorMsg;
+      notifyListeners();
+      print('❌ [AUTH_CONTROLLER] Password reset failed: $errorMsg');
+      print('════════════════════════════════════════\n');
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // LOGOUT + KYC + SESSION HELPERS
+  // ---------------------------------------------------------------------------
 
   /// LOGOUT
   Future<void> logout() async {

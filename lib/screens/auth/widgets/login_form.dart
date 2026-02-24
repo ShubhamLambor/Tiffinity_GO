@@ -7,11 +7,17 @@ class LoginForm extends StatefulWidget {
   final VoidCallback? onTapRegister;
   final bool loading;
 
+  // NEW: optional callbacks
+  final VoidCallback? onTapLoginWithOtp;
+  final VoidCallback? onTapForgotPassword;
+
   const LoginForm({
     super.key,
     required this.onSubmit,
     this.onTapRegister,
     this.loading = false,
+    this.onTapLoginWithOtp,
+    this.onTapForgotPassword,
   });
 
   @override
@@ -46,7 +52,6 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SingleChildScrollView(
@@ -58,7 +63,7 @@ class _LoginFormState extends State<LoginForm> {
               width: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)], // Rich Green Gradient
+                  colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -95,9 +100,12 @@ class _LoginFormState extends State<LoginForm> {
                   const SizedBox(height: 6),
                   Text(
                     'Delivery Partner Portal',
-                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 16,
+                    ),
                   ),
-                  const SizedBox(height: 50), // Spacing for overlap
+                  const SizedBox(height: 50),
                 ],
               ),
             ),
@@ -126,7 +134,11 @@ class _LoginFormState extends State<LoginForm> {
                         children: [
                           const Text(
                             'Login Account',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2E7D32),
+                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -137,12 +149,27 @@ class _LoginFormState extends State<LoginForm> {
                             decoration: InputDecoration(
                               labelText: 'Email Address',
                               hintText: 'partner@tiffinity.com',
-                              prefixIcon: const Icon(Icons.email_outlined, color: Colors.green),
+                              prefixIcon: const Icon(
+                                Icons.email_outlined,
+                                color: Colors.green,
+                              ),
                               filled: true,
                               fillColor: Colors.grey[50],
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.green, width: 2)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                BorderSide(color: Colors.grey.shade200),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.all(Radius.circular(12)),
+                                borderSide:
+                                BorderSide(color: Colors.green, width: 2),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -153,26 +180,75 @@ class _LoginFormState extends State<LoginForm> {
                             obscureText: _obscure,
                             decoration: InputDecoration(
                               labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.green),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline,
+                                color: Colors.green,
+                              ),
                               suffixIcon: IconButton(
-                                icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
-                                onPressed: () => setState(() => _obscure = !_obscure),
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
                               ),
                               filled: true,
                               fillColor: Colors.grey[50],
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.green, width: 2)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                BorderSide(color: Colors.grey.shade200),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.all(Radius.circular(12)),
+                                borderSide:
+                                BorderSide(color: Colors.green, width: 2),
+                              ),
                             ),
                           ),
 
+                          // Forgot password (wired to callback if provided)
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () {},
-                              child: Text('Forgot Password?', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                              onPressed: widget.onTapForgotPassword,
+                              child: Text(
+                                'Forgot Password?',
+                                style: TextStyle(
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
+
+                          const SizedBox(height: 8),
+
+                          // Login with Email OTP (optional)
+                          if (widget.onTapLoginWithOtp != null)
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: widget.onTapLoginWithOtp,
+                                icon: const Icon(
+                                  Icons.mark_email_unread_outlined,
+                                  color: Colors.green,
+                                ),
+                                label: const Text(
+                                  'Login with Email OTP',
+                                  style: TextStyle(
+                                    color: Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
 
                           const SizedBox(height: 20),
 
@@ -185,13 +261,26 @@ class _LoginFormState extends State<LoginForm> {
                                 backgroundColor: const Color(0xFF2E7D32),
                                 foregroundColor: Colors.white,
                                 elevation: 4,
-                                shadowColor: Colors.green.withOpacity(0.4),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shadowColor:
+                                Colors.green.withOpacity(0.4),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
-                              onPressed: widget.loading ? null : _handleSubmit,
+                              onPressed:
+                              widget.loading ? null : _handleSubmit,
                               child: widget.loading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text('LOGIN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                                  ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                                  : const Text(
+                                'LOGIN',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                             ),
                           ),
 
@@ -201,13 +290,20 @@ class _LoginFormState extends State<LoginForm> {
                           Center(
                             child: Column(
                               children: [
-                                Text("Don't have an account?", style: TextStyle(color: Colors.grey[600])),
+                                Text(
+                                  "Don't have an account?",
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
                                 const SizedBox(height: 8),
                                 GestureDetector(
                                   onTap: widget.onTapRegister,
                                   child: const Text(
                                     'Apply as Delivery Partner',
-                                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
+                                    style: TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -223,12 +319,27 @@ class _LoginFormState extends State<LoginForm> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Help Center', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                      Text(
+                        'Help Center',
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('|', style: TextStyle(color: Colors.grey[400])),
+                        child: Text(
+                          '|',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
                       ),
-                      Text('Terms of Service', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                      Text(
+                        'Terms of Service',
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 30),

@@ -2,8 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
 import '../../data/repository/user_repository.dart';
 import '../nav/bottom_nav.dart';
+import 'auth_controller.dart';
+import 'email_verify_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -72,7 +76,10 @@ class _SignupPageState extends State<SignupPage> {
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fix all errors before submitting'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text('Please fix all errors before submitting'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -80,38 +87,59 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => _loading = true);
 
     try {
-      final repo = UserRepository();
-      await repo.signupBasic(
+      final auth = context.read<AuthController>();
+
+      final success = await auth.signupBasic(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        phone: _phoneController.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), ''),
-        role: 'delivery',
-      );
-
-      // Auto-Login
-      await repo.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        phone: _phoneController.text
+            .trim()
+            .replaceAll(RegExp(r'[\s\-\(\)]'), ''),
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created! Welcome aboard.'), backgroundColor: Colors.green),
-      );
+      if (success) {
+        setState(() => _loading = false);
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const BottomNav()),
-            (route) => false,
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Account created! Please verify your email to continue.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
 
+        // Navigate to email verification screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmailVerifyPage(
+              email: _emailController.text.trim(),
+            ),
+          ),
+        );
+      } else {
+        setState(() => _loading = false);
+        final msg = auth.error ?? 'Registration failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       setState(() => _loading = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception:', '').trim()), backgroundColor: Colors.red),
+        SnackBar(
+          content:
+          Text(e.toString().replaceFirst('Exception:', '').trim()),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -145,20 +173,42 @@ class _SignupPageState extends State<SignupPage> {
                     Align(
                       alignment: Alignment.topLeft,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon:
+                        const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.person_add_alt_1, color: Colors.white, size: 48),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_add_alt_1,
+                        color: Colors.white,
+                        size: 48,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Join Tiffinity', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
+                    const Text(
+                      'Join Tiffinity',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text('Create your Partner Account', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16)),
+                    Text(
+                      'Create your Partner Account',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 16,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -166,13 +216,22 @@ class _SignupPageState extends State<SignupPage> {
 
             // 2. FORM CARD
             Padding(
-              padding: const EdgeInsets.only(top: 260, left: 20, right: 20, bottom: 40),
+              padding: const EdgeInsets.only(
+                top: 260,
+                left: 20,
+                right: 20,
+                bottom: 40,
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
                   ],
                 ),
                 child: Padding(
@@ -182,7 +241,14 @@ class _SignupPageState extends State<SignupPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Personal Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                        const Text(
+                          'Personal Information',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
                         const SizedBox(height: 20),
 
                         // Full Name
@@ -213,7 +279,10 @@ class _SignupPageState extends State<SignupPage> {
                           validator: _validatePhone,
                           inputType: TextInputType.phone,
                           prefixText: '+91 ',
-                          formatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+                          formatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(10),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
@@ -225,7 +294,9 @@ class _SignupPageState extends State<SignupPage> {
                           validator: _validatePassword,
                           isPassword: true,
                           isObscure: _obscurePassword,
-                          onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onToggleVisibility: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                         const SizedBox(height: 16),
 
@@ -237,7 +308,10 @@ class _SignupPageState extends State<SignupPage> {
                           validator: _validateConfirmPassword,
                           isPassword: true,
                           isObscure: _obscureConfirmPassword,
-                          onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                          onToggleVisibility: () => setState(
+                                () => _obscureConfirmPassword =
+                            !_obscureConfirmPassword,
+                          ),
                         ),
 
                         const SizedBox(height: 32),
@@ -252,12 +326,24 @@ class _SignupPageState extends State<SignupPage> {
                               backgroundColor: const Color(0xFF2E7D32),
                               foregroundColor: Colors.white,
                               elevation: 4,
-                              shadowColor: Colors.green.withOpacity(0.4),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shadowColor:
+                              Colors.green.withOpacity(0.4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             child: _loading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text('CREATE ACCOUNT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                                ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                                : const Text(
+                              'CREATE ACCOUNT',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                              ),
+                            ),
                           ),
                         ),
 
@@ -267,10 +353,19 @@ class _SignupPageState extends State<SignupPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Already have an account? ', style: TextStyle(color: Colors.grey[600])),
+                            Text(
+                              'Already have an account? ',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
                             GestureDetector(
                               onTap: () => Navigator.pop(context),
-                              child: const Text('Login Here', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                'Login Here',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -312,14 +407,29 @@ class _SignupPageState extends State<SignupPage> {
         fillColor: Colors.grey[50],
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(isObscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+          icon: Icon(
+            isObscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey,
+          ),
           onPressed: onToggleVisibility,
         )
             : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.green, width: 2)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: Colors.green, width: 2),
+        ),
+        errorBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: Colors.red),
+        ),
       ),
     );
   }

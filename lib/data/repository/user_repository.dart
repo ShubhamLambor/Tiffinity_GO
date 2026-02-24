@@ -19,14 +19,26 @@ class UserRepository {
   final String sendOtpUrl;
   final String verifyOtpUrl;
 
+  // New endpoints for email OTP flows
+  final String loginWithOtpUrl;
+  final String verifyLoginOtpUrl;
+  final String verifyEmailUrl;
+  final String forgetPasswordUrl;
+  final String resetPasswordUrl;
+
   UserRepository({
     this.loginUrl = "$baseUrl/login.php",
     this.registerUrl = "$baseUrl/register.php",
     this.kycUrl = "$baseUrl/delivery_kyc.php",
-    this.updateEmailUrl = "$baseUrl/update_email.php",
-    this.updatePhoneUrl = "$baseUrl/update_phone.php",
-    this.sendOtpUrl = "$baseUrl/send_otp.php",
-    this.verifyOtpUrl = "$baseUrl/verify_otp.php",
+    this.updateEmailUrl = "$baseUrl/users/update_email.php",
+    this.updatePhoneUrl = "$baseUrl/users/update_phone.php",
+    this.sendOtpUrl = "$baseUrl/users/send_otp.php",
+    this.verifyOtpUrl = "$baseUrl/users/verify_otp.php",
+    this.loginWithOtpUrl = "$baseUrl/users/login_with_otp.php",
+    this.verifyLoginOtpUrl = "$baseUrl/users/verify_login_otp.php",
+    this.verifyEmailUrl = "$baseUrl/users/verify_email.php",
+    this.forgetPasswordUrl = "$baseUrl/users/forget_password.php",
+    this.resetPasswordUrl = "$baseUrl/users/reset_password.php",
   });
 
   void clearUser() {
@@ -51,7 +63,7 @@ class UserRepository {
     return DummyData.user;
   }
 
-  // ✅ UPDATED: Always fetch fresh data from SharedPreferences
+  // ✅ Always fetch fresh data from SharedPreferences
   Future<UserModel> getUserProfile() async {
     print('[GETPROFILE] Fetching user profile...');
 
@@ -74,7 +86,6 @@ class UserRepository {
       print('  Name: $userName');
       print('  Email: $userEmail');
 
-      // ✅ Update DummyData with fresh SharedPreferences data
       DummyData.user = UserModel(
         id: userId,
         name: userName,
@@ -86,7 +97,6 @@ class UserRepository {
 
       await Future.delayed(const Duration(milliseconds: 500));
       return DummyData.user;
-
     } catch (e) {
       print('[GETPROFILE] ❌ Error: $e');
       rethrow;
@@ -121,7 +131,345 @@ class UserRepository {
     print('✅ [RESTORE] User session restored successfully');
   }
 
-  // ✅ ---------------- UPDATE EMAIL ----------------
+  // ---------------------------------------------------------------------------
+  // EMAIL AUTH / OTP FLOWS
+  // ---------------------------------------------------------------------------
+
+  /// Verify signup email OTP -> verify_email.php
+  Future<UserModel> verifyEmailWithOtp({
+    required String email,
+    required String otp,
+  }) async {
+    print('\n════════════════════════════════════════');
+    print('📧 [VERIFY_EMAIL_OTP] Verifying email OTP');
+    print('════════════════════════════════════════');
+
+    final uri = Uri.parse(verifyEmailUrl);
+    print('🌐 [VERIFY_EMAIL_OTP] API Endpoint: $uri');
+    print('📧 [VERIFY_EMAIL_OTP] Email: $email');
+    print('🔢 [VERIFY_EMAIL_OTP] OTP: $otp');
+
+    try {
+      final response = await http
+          .post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+        },
+        encoding: Encoding.getByName('utf-8'),
+      )
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 [VERIFY_EMAIL_OTP] Response received');
+      print('   Status Code: ${response.statusCode}');
+      print('   Body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        final msg = data['message']?.toString() ?? 'Email verification failed';
+        print('❌ [VERIFY_EMAIL_OTP] Failed: $msg');
+        throw Exception(msg);
+      }
+
+      final dataObj = data['data'] ?? {};
+      final userJson = dataObj['user'] ?? dataObj;
+
+      print('👤 [VERIFY_EMAIL_OTP] User payload: $userJson');
+
+      final userId = (userJson['uid'] ?? userJson['id'] ?? userJson['user_id'] ?? '')
+          .toString();
+
+      if (userId.isEmpty) {
+        print('⚠️ [VERIFY_EMAIL_OTP] Empty user ID from server');
+        throw Exception('Invalid user data from server');
+      }
+
+      final user = UserModel(
+        id: userId,
+        name: userJson['name']?.toString() ?? 'Delivery Partner',
+        email: userJson['email']?.toString() ?? email,
+        phone: userJson['phone']?.toString() ?? '',
+        profilePic: userJson['profile_pic']?.toString() ?? '',
+        role: userJson['role']?.toString() ?? 'delivery',
+        isEmailVerified: true,
+        isPhoneVerified: userJson['is_phone_verified'] == 1 ||
+            userJson['is_phone_verified'] == true,
+      );
+
+      print('✅ [VERIFY_EMAIL_OTP] UserModel created:');
+      print('   ID: ${user.id}');
+      print('   Name: ${user.name}');
+      print('   Email: ${user.email}');
+      print('   Role: ${user.role}');
+
+      DummyData.user = user;
+      print('💾 [VERIFY_EMAIL_OTP] User saved to DummyData');
+      print('════════════════════════════════════════\n');
+      return user;
+    } on SocketException catch (e) {
+      print('❌ [VERIFY_EMAIL_OTP] Network Error: $e');
+      throw Exception('Network error. Please check your internet connection.');
+    } catch (e) {
+      print('❌ [VERIFY_EMAIL_OTP] Error: $e');
+      if (e.toString().contains('Exception:')) rethrow;
+      throw Exception('Email verification failed: ${e.toString()}');
+    }
+  }
+
+  /// Request login OTP -> login_with_otp.php
+  Future<void> requestLoginOtp({required String email}) async {
+    print('\n════════════════════════════════════════');
+    print('📨 [LOGIN_OTP] Requesting login OTP');
+    print('════════════════════════════════════════');
+    final uri = Uri.parse(loginWithOtpUrl);
+    print('🌐 [LOGIN_OTP] API Endpoint: $uri');
+    print('📧 [LOGIN_OTP] Email: $email');
+
+    try {
+      final response = await http
+          .post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'email': email.trim(),
+        },
+        encoding: Encoding.getByName('utf-8'),
+      )
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 [LOGIN_OTP] Response received');
+      print('   Status Code: ${response.statusCode}');
+      print('   Body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        final msg = data['message']?.toString() ?? 'Failed to send login OTP';
+        print('❌ [LOGIN_OTP] Failed: $msg');
+        throw Exception(msg);
+      }
+
+      print('✅ [LOGIN_OTP] OTP sent successfully');
+      print('════════════════════════════════════════\n');
+    } on SocketException catch (e) {
+      print('❌ [LOGIN_OTP] Network Error: $e');
+      throw Exception('Network error. Please check your internet connection.');
+    } catch (e) {
+      print('❌ [LOGIN_OTP] Error: $e');
+      if (e.toString().contains('Exception:')) rethrow;
+      throw Exception('Failed to send login OTP: ${e.toString()}');
+    }
+  }
+
+  /// Verify login OTP -> verify_login_otp.php
+  Future<UserModel> verifyLoginOtp({
+    required String email,
+    required String otp,
+  }) async {
+    print('\n════════════════════════════════════════');
+    print('🔐 [VERIFY_LOGIN_OTP] Verifying login OTP');
+    print('════════════════════════════════════════');
+
+    final uri = Uri.parse(verifyLoginOtpUrl);
+    print('🌐 [VERIFY_LOGIN_OTP] API Endpoint: $uri');
+    print('📧 [VERIFY_LOGIN_OTP] Email: $email');
+    print('🔢 [VERIFY_LOGIN_OTP] OTP: $otp');
+
+    try {
+      final response = await http
+          .post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+        },
+        encoding: Encoding.getByName('utf-8'),
+      )
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 [VERIFY_LOGIN_OTP] Response received');
+      print('   Status Code: ${response.statusCode}');
+      print('   Body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        final msg =
+            data['message']?.toString() ?? 'Login OTP verification failed';
+        print('❌ [VERIFY_LOGIN_OTP] Failed: $msg');
+        throw Exception(msg);
+      }
+
+      final dataObj = data['data'] ?? {};
+      final userJson = dataObj['user'] ?? dataObj;
+
+      print('👤 [VERIFY_LOGIN_OTP] User payload: $userJson');
+
+      final userId = (userJson['uid'] ?? userJson['id'] ?? userJson['user_id'] ?? '')
+          .toString();
+
+      if (userId.isEmpty) {
+        print('⚠️ [VERIFY_LOGIN_OTP] Empty user ID from server');
+        throw Exception('Invalid user data from server');
+      }
+
+      String userRole = userJson['role']?.toString() ?? '';
+      if (userRole.isEmpty) {
+        userRole = 'delivery';
+      }
+
+      final user = UserModel(
+        id: userId,
+        name: userJson['name']?.toString() ?? email.split('@')[0],
+        email: userJson['email']?.toString() ?? email,
+        phone: userJson['phone']?.toString() ?? '',
+        profilePic: userJson['profile_pic']?.toString() ?? '',
+        role: userRole,
+        isEmailVerified: userJson['is_email_verified'] == 1 ||
+            userJson['is_email_verified'] == true,
+        isPhoneVerified: userJson['is_phone_verified'] == 1 ||
+            userJson['is_phone_verified'] == true,
+      );
+
+      print('✅ [VERIFY_LOGIN_OTP] UserModel created:');
+      print('   ID: ${user.id}');
+      print('   Name: ${user.name}');
+      print('   Email: ${user.email}');
+      print('   Role: ${user.role}');
+
+      DummyData.user = user;
+      print('💾 [VERIFY_LOGIN_OTP] User saved to DummyData');
+      print('════════════════════════════════════════\n');
+      return user;
+    } on SocketException catch (e) {
+      print('❌ [VERIFY_LOGIN_OTP] Network Error: $e');
+      throw Exception('Network error. Please check your internet connection.');
+    } catch (e) {
+      print('❌ [VERIFY_LOGIN_OTP] Error: $e');
+      if (e.toString().contains('Exception:')) rethrow;
+      throw Exception('Login OTP verification failed: ${e.toString()}');
+    }
+  }
+
+  /// Forgot password -> forget_password.php
+  Future<void> requestPasswordResetOtp({required String email}) async {
+    print('\n════════════════════════════════════════');
+    print('📨 [FORGOT_PASSWORD] Requesting password reset OTP');
+    print('════════════════════════════════════════');
+
+    final uri = Uri.parse(forgetPasswordUrl);
+    print('🌐 [FORGOT_PASSWORD] API Endpoint: $uri');
+    print('📧 [FORGOT_PASSWORD] Email: $email');
+
+    try {
+      final response = await http
+          .post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'email': email.trim(),
+        },
+        encoding: Encoding.getByName('utf-8'),
+      )
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 [FORGOT_PASSWORD] Response received');
+      print('   Status Code: ${response.statusCode}');
+      print('   Body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        final msg =
+            data['message']?.toString() ?? 'Failed to send reset OTP';
+        print('❌ [FORGOT_PASSWORD] Failed: $msg');
+        throw Exception(msg);
+      }
+
+      print('✅ [FORGOT_PASSWORD] Reset OTP sent successfully');
+      print('════════════════════════════════════════\n');
+    } on SocketException catch (e) {
+      print('❌ [FORGOT_PASSWORD] Network Error: $e');
+      throw Exception('Network error. Please check your internet connection.');
+    } catch (e) {
+      print('❌ [FORGOT_PASSWORD] Error: $e');
+      if (e.toString().contains('Exception:')) rethrow;
+      throw Exception('Failed to send reset OTP: ${e.toString()}');
+    }
+  }
+
+  /// Reset password with OTP -> reset_password.php
+  Future<void> resetPasswordWithOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    print('\n════════════════════════════════════════');
+    print('🔒 [RESET_PASSWORD] Resetting password with OTP');
+    print('════════════════════════════════════════');
+
+    final uri = Uri.parse(resetPasswordUrl);
+    print('🌐 [RESET_PASSWORD] API Endpoint: $uri');
+    print('📧 [RESET_PASSWORD] Email: $email');
+    print('🔢 [RESET_PASSWORD] OTP: $otp');
+
+    try {
+      final response = await http
+          .post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+          'new_password': newPassword,
+        },
+        encoding: Encoding.getByName('utf-8'),
+      )
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 [RESET_PASSWORD] Response received');
+      print('   Status Code: ${response.statusCode}');
+      print('   Body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        final msg =
+            data['message']?.toString() ?? 'Reset password failed';
+        print('❌ [RESET_PASSWORD] Failed: $msg');
+        throw Exception(msg);
+      }
+
+      print('✅ [RESET_PASSWORD] Password reset successfully');
+      print('════════════════════════════════════════\n');
+    } on SocketException catch (e) {
+      print('❌ [RESET_PASSWORD] Network Error: $e');
+      throw Exception('Network error. Please check your internet connection.');
+    } catch (e) {
+      print('❌ [RESET_PASSWORD] Error: $e');
+      if (e.toString().contains('Exception:')) rethrow;
+      throw Exception('Reset password failed: ${e.toString()}');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // UPDATE EMAIL / PHONE (existing)
+  // ---------------------------------------------------------------------------
+
   Future<void> updateEmail(String newEmail) async {
     print('\n════════════════════════════════════════');
     print('📧 [UPDATE_EMAIL] Starting email update');
@@ -148,14 +496,17 @@ class UserRepository {
 
     try {
       print('⏳ [UPDATE_EMAIL] Sending POST request...');
-      final response = await http.post(
+      final response = await http
+          .post(
         uri,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type':
+          'application/x-www-form-urlencoded; charset=UTF-8',
         },
         body: body,
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       print('📥 [UPDATE_EMAIL] Response received');
       print('   Status Code: ${response.statusCode}');
@@ -177,7 +528,6 @@ class UserRepository {
         throw Exception(data['message'] ?? 'Failed to update email');
       }
 
-      // Update local user data
       DummyData.user = DummyData.user.copyWith(email: newEmail);
       print('✅ [UPDATE_EMAIL] Email updated successfully!');
       print('════════════════════════════════════════\n');
@@ -191,7 +541,6 @@ class UserRepository {
     }
   }
 
-  // ✅ ---------------- UPDATE PHONE ----------------
   Future<void> updatePhone(String newPhone) async {
     print('\n════════════════════════════════════════');
     print('📱 [UPDATE_PHONE] Starting phone update');
@@ -218,14 +567,17 @@ class UserRepository {
 
     try {
       print('⏳ [UPDATE_PHONE] Sending POST request...');
-      final response = await http.post(
+      final response = await http
+          .post(
         uri,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type':
+          'application/x-www-form-urlencoded; charset=UTF-8',
         },
         body: body,
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       print('📥 [UPDATE_PHONE] Response received');
       print('   Status Code: ${response.statusCode}');
@@ -247,7 +599,6 @@ class UserRepository {
         throw Exception(data['message'] ?? 'Failed to update phone');
       }
 
-      // Update local user data
       DummyData.user = DummyData.user.copyWith(phone: newPhone);
       print('✅ [UPDATE_PHONE] Phone updated successfully!');
       print('════════════════════════════════════════\n');
@@ -261,7 +612,7 @@ class UserRepository {
     }
   }
 
-  // ✅ ---------------- SEND OTP ----------------
+  // Existing generic sendOtp / verifyOtp (if you still use them elsewhere)
   Future<void> sendOtp({
     required String destination,
     required String channel, // "email" or "phone"
@@ -293,14 +644,17 @@ class UserRepository {
 
     try {
       print('⏳ [SEND_OTP] Sending POST request...');
-      final response = await http.post(
+      final response = await http
+          .post(
         uri,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type':
+          'application/x-www-form-urlencoded; charset=UTF-8',
         },
         body: body,
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       print('📥 [SEND_OTP] Response received');
       print('   Status Code: ${response.statusCode}');
@@ -334,7 +688,6 @@ class UserRepository {
     }
   }
 
-  // ✅ ---------------- VERIFY OTP ----------------
   Future<bool> verifyOtp({
     required String destination,
     required String otp,
@@ -369,14 +722,17 @@ class UserRepository {
 
     try {
       print('⏳ [VERIFY_OTP] Sending POST request...');
-      final response = await http.post(
+      final response = await http
+          .post(
         uri,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type':
+          'application/x-www-form-urlencoded; charset=UTF-8',
         },
         body: body,
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       print('📥 [VERIFY_OTP] Response received');
       print('   Status Code: ${response.statusCode}');
@@ -411,7 +767,10 @@ class UserRepository {
     }
   }
 
-  // ✅ ---------------- LOGIN ----------------
+  // ---------------------------------------------------------------------------
+  // LOGIN (existing) + SIGNUP (existing)
+  // ---------------------------------------------------------------------------
+
   Future<UserModel> login({
     required String email,
     required String password,
@@ -458,7 +817,8 @@ class UserRepository {
         try {
           final data = jsonDecode(response.body);
           print('   Error data: $data');
-          final msg = data['message']?.toString() ?? 'Server error ${response.statusCode}';
+          final msg =
+              data['message']?.toString() ?? 'Server error ${response.statusCode}';
           throw Exception(msg);
         } catch (e) {
           print('   Failed to parse error response: $e');
@@ -474,7 +834,6 @@ class UserRepository {
 
       Map<String, dynamic> actualData = data;
 
-      // Check if response has nested "data" field
       if (data.containsKey('data') && data['data'] is Map) {
         actualData = data['data'] as Map<String, dynamic>;
         print('📦 [LOGIN] Using nested data structure');
@@ -501,7 +860,6 @@ class UserRepository {
       print('   Content: $userData');
       print('   Keys: ${userData.keys.toList()}');
 
-      // ✅ Parse user ID as String
       print('🔢 [LOGIN] Parsing user ID...');
       String userId = '';
       if (userData['uid'] != null) {
@@ -526,7 +884,6 @@ class UserRepository {
         print('⚠️ [LOGIN] WARNING: User ID is empty - KYC will fail!');
       }
 
-      // ✅ Parse role from response
       print('🔑 [LOGIN] Parsing user role...');
       String userRole = userData['role']?.toString() ?? '';
       if (userRole.isEmpty) {
@@ -544,8 +901,10 @@ class UserRepository {
         phone: userData['phone']?.toString() ?? '',
         profilePic: userData['profile_pic']?.toString() ?? '',
         role: userRole,
-        isEmailVerified: userData['is_email_verified'] == 1 || userData['is_email_verified'] == true,
-        isPhoneVerified: userData['is_phone_verified'] == 1 || userData['is_phone_verified'] == true,
+        isEmailVerified: userData['is_email_verified'] == 1 ||
+            userData['is_email_verified'] == true,
+        isPhoneVerified: userData['is_phone_verified'] == 1 ||
+            userData['is_phone_verified'] == true,
       );
 
       print('✅ [LOGIN] UserModel created:');
@@ -585,7 +944,6 @@ class UserRepository {
     }
   }
 
-  // ✅ ---------------- BASIC SIGNUP ----------------
   Future<void> signupBasic({
     required String name,
     required String email,
@@ -623,7 +981,8 @@ class UserRepository {
       final response = await http.post(
         uri,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type':
+          'application/x-www-form-urlencoded; charset=UTF-8',
         },
         body: body,
         encoding: Encoding.getByName('utf-8'),
@@ -646,7 +1005,8 @@ class UserRepository {
         final savedRole = data['user']['role'];
         print('📋 [SIGNUP] Role saved in database: "$savedRole"');
         if (savedRole != role) {
-          print('⚠️ [SIGNUP] WARNING: Sent role "$role" but saved as "$savedRole"');
+          print(
+              '⚠️ [SIGNUP] WARNING: Sent role "$role" but saved as "$savedRole"');
         }
       }
 
@@ -663,18 +1023,24 @@ class UserRepository {
         }
       }
 
-      if (!isSuccess && data.containsKey('token') && data.containsKey('user')) {
+      if (!isSuccess &&
+          data.containsKey('token') &&
+          data.containsKey('user')) {
         print('✅ [SIGNUP] Success detected via token + user presence');
         isSuccess = true;
       }
 
-      if (!isSuccess && (response.statusCode == 200 || response.statusCode == 201) && data.containsKey('user')) {
-        print('✅ [SIGNUP] Success detected via status code + user data');
+      if (!isSuccess &&
+          (response.statusCode == 200 || response.statusCode == 201) &&
+          data.containsKey('user')) {
+        print(
+            '✅ [SIGNUP] Success detected via status code + user data');
         isSuccess = true;
       }
 
       if (!isSuccess) {
-        final msg = data['message'] ?? 'Registration failed - unexpected response format';
+        final msg = data['message'] ??
+            'Registration failed - unexpected response format';
         print('❌ [SIGNUP] Registration failed: $msg');
         print('   Full response: $data');
         throw Exception(msg);
@@ -696,7 +1062,10 @@ class UserRepository {
     }
   }
 
-  // ✅ ---------------- SUBMIT DELIVERY PARTNER KYC ----------------
+  // ---------------------------------------------------------------------------
+  // SUBMIT DELIVERY PARTNER KYC (existing)
+  // ---------------------------------------------------------------------------
+
   Future<void> submitDeliveryPartnerKyc({
     String? vehicleType,
     String? vehicleNumber,
@@ -779,15 +1148,18 @@ class UserRepository {
 
     try {
       print('⏳ [KYC] Sending POST request...');
-      final response = await http.post(
+      final response = await http
+          .post(
         uri,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type':
+          'application/x-www-form-urlencoded; charset=UTF-8',
           'Accept': 'application/json',
         },
         body: body,
         encoding: Encoding.getByName('utf-8'),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 30),
         onTimeout: () {
           print('⏱️ [KYC] Request timed out after 30 seconds');
@@ -808,7 +1180,8 @@ class UserRepository {
           print('════════════════════════════════════════\n');
           return;
         } else {
-          throw Exception('Server returned empty response with status ${response.statusCode}');
+          throw Exception(
+              'Server returned empty response with status ${response.statusCode}');
         }
       }
 
@@ -835,7 +1208,9 @@ class UserRepository {
           throw Exception(data['error'].toString());
         }
         if (data.containsKey('success') && data['success'] == false) {
-          final msg = data['message'] ?? data['error'] ?? 'KYC submission failed';
+          final msg = data['message'] ??
+              data['error'] ??
+              'KYC submission failed';
           throw Exception(msg);
         }
       }

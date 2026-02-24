@@ -8,6 +8,7 @@ import '../settings/settings_page.dart';
 import 'profile_controller.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/logout_button.dart';
+import '../auth/change_password_page.dart';
 
 // ============================================================================
 // MAIN PROFILE PAGE
@@ -1078,6 +1079,96 @@ class _EarningsSummaryPageState extends State<EarningsSummaryPage> {
   }
 }
 
+class ChangePasswordPageTile extends StatelessWidget {
+  const ChangePasswordPageTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.lock_reset,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Change Password',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Reset your password using email OTP. You will stay logged in.',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ChangePasswordPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: const Text('RESET PASSWORD'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 // ============================================================================
 // 5. DELIVERY STATS PAGE (unchanged UI)
 // ============================================================================
@@ -1247,6 +1338,7 @@ class DeliveryStatsPage extends StatelessWidget {
 // 6. ACCOUNT SETTINGS PAGE (same as before, uses controller)
 // ============================================================================
 
+
 class AccountSettingsPage extends StatelessWidget {
   const AccountSettingsPage({super.key});
 
@@ -1260,12 +1352,14 @@ class AccountSettingsPage extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Email
               _buildVerificationCard(
                 context: context,
                 icon: Icons.email_outlined,
                 title: 'Email Address',
-                value:
-                controller.email.isNotEmpty ? controller.email : 'Not added',
+                value: controller.email.isNotEmpty
+                    ? controller.email
+                    : 'Not added',
                 isVerified: controller.isEmailVerified,
                 channel: 'Email',
                 color: Colors.blue,
@@ -1314,13 +1408,17 @@ class AccountSettingsPage extends StatelessWidget {
                   }
                 },
               ),
+
               const SizedBox(height: 16),
+
+              // Phone
               _buildVerificationCard(
                 context: context,
                 icon: Icons.phone_iphone,
                 title: 'Mobile Number',
-                value:
-                controller.phone.isNotEmpty ? controller.phone : 'Not added',
+                value: controller.phone.isNotEmpty
+                    ? controller.phone
+                    : 'Not added',
                 isVerified: controller.isPhoneVerified,
                 channel: 'Phone',
                 color: Colors.teal,
@@ -1349,7 +1447,8 @@ class AccountSettingsPage extends StatelessWidget {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Phone number verified successfully!'),
+                        content:
+                        Text('Phone number verified successfully!'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -1369,6 +1468,11 @@ class AccountSettingsPage extends StatelessWidget {
                   }
                 },
               ),
+
+              const SizedBox(height: 16),
+
+              // NEW: Change password tile
+              _buildChangePasswordCard(context),
             ],
           ),
         );
@@ -1376,6 +1480,93 @@ class AccountSettingsPage extends StatelessWidget {
     );
   }
 }
+
+// -------- NEW WIDGET BELOW --------
+
+Widget _buildChangePasswordCard(BuildContext context) {
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.lock_reset,
+                color: Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Change Password',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Reset your password using email OTP. You will stay logged in.',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ChangePasswordPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.lock_outline, size: 18),
+            label: const Text('RESET PASSWORD'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
 Widget _buildVerificationCard({
   required BuildContext context,

@@ -8,8 +8,10 @@ import '../nav/bottom_nav.dart';
 import '../deliveries/deliveries_controller.dart';
 import '../home/home_controller.dart';
 import 'auth_controller.dart';
+import 'email_otp_login_page.dart';
 import 'signup_page.dart';
 import 'widgets/login_form.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -30,7 +32,7 @@ class LoginPage extends StatelessWidget {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setBool('isLoggedIn', true);
 
-          // ✅ FIXED: Force refresh controllers with new user ID
+          // ✅ Force refresh controllers with new user ID
           final newUserId = controller.getCurrentUserId();
           if (newUserId != null) {
             debugPrint('🔄 [LOGIN] Refreshing controllers for user: $newUserId');
@@ -42,7 +44,8 @@ class LoginPage extends StatelessWidget {
               debugPrint('✅ [LOGIN] HomeController refreshed');
 
               // Refresh DeliveriesController
-              final deliveriesController = context.read<DeliveriesController>();
+              final deliveriesController =
+              context.read<DeliveriesController>();
               await deliveriesController.fetchDeliveries();
               debugPrint('✅ [LOGIN] DeliveriesController refreshed');
             } catch (e) {
@@ -79,6 +82,20 @@ class LoginPage extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const SignupPage()),
+        );
+      },
+      // New: login with email OTP
+      onTapLoginWithOtp: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const EmailOtpLoginPage()),
+        );
+      },
+      // New: forgot password
+      onTapForgotPassword: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
         );
       },
     );
