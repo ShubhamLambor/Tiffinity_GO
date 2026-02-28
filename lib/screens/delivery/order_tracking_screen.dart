@@ -42,14 +42,40 @@ class _OrderTrackingView extends StatelessWidget {
     final isLoading = controller.isLoading && order == null;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA), // Match Home background
       appBar: AppBar(
-        title: Text('Order ${controller.orderId}'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        title: Column(
+          children: [
+            const Text(
+              'Track Order',
+              style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
+            Text(
+              controller.orderId,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.green))
           : order == null
           ? Center(
-        child: Text(controller.errorMessage ?? 'Order not found'),
+        child: Text(
+          controller.errorMessage ?? 'Order not found',
+          style: const TextStyle(color: Colors.grey, fontSize: 16),
+        ),
       )
           : Column(
         children: [
@@ -57,7 +83,6 @@ class _OrderTrackingView extends StatelessWidget {
             status: controller.status,
             assignmentStatus: controller.assignmentStatus,
           ),
-          const SizedBox(height: 8),
           Expanded(
             child: _buildStageScreen(context, controller, order),
           ),
@@ -86,10 +111,9 @@ class _OrderTrackingView extends StatelessWidget {
       return PickupScreen(
         order: order,
         isUpdating: c.isUpdating,
-        // at_pickup already set in DB -> don't call reached_pickup again
         onReachedPickup: () async {},
         onPickedUp: () async {
-          await c.markPickedUp(); // picked_up
+          await c.markPickedUp();
         },
         onNavigateToMess: () {
           Navigator.push(
@@ -123,7 +147,6 @@ class _OrderTrackingView extends StatelessWidget {
         );
       },
       onReachedPickup: () async {
-        // First and only place that calls reached_pickup
         if (!c.isAtWaiting) return;
         await c.markReachedPickup();
       },
