@@ -1,0 +1,15 @@
+flutter_launcher_icons:
+  # iOS Configuration
+  ios: true
+  image_path_ios: "assets/icon/delivery_icon.png"
+  ios_content_padding: 2 # Slight padding for the graphic to not hit iOS edges
+  # Optional: iOS requires solid background. Set this if your asset has transparency.
+  # background_color_ios: "#FFFFFF"
+
+  # Android Configuration (Crucial for the "Perfect" look)
+  android: true
+  # Define adaptive icons for Android 8.0+ compatibility
+  # We use the transparent tiffin graphic as the foreground
+  adaptive_icon_foreground: "assets/icon/delivery_icon.png"
+  # We use solid white for the background (as per your original design)
+  adaptive_icon_background: "#FFFFFF"

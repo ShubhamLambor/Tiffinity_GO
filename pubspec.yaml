@@ -51,24 +51,28 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/delivery_icon.png"
+  ios_content_padding: 2
+  background_color_ios: "#FFFFFF"
   min_sdk_android: 21
 
   # Adaptive icon for better Android appearance
-  adaptive_icon_background: "#4CAF50"  # Green background
+  adaptive_icon_background: "#FFFFFF"  # Changed to White background
   adaptive_icon_foreground: "assets/icon/delivery_icon.png"
 
 # Native Splash Screen Configuration
 flutter_native_splash:
-  color: "#4CAF50"  # Green background
+  color: "#FFFFFF"  # Changed to White background
   image: assets/icon/delivery_icon.png
+
+# Android Splash Screen Configuration
+android_splash:
   android: true
   ios: true
 
   # Android 12+ specific splash
   android_12:
-    color: "#4CAF50"
+    color: "#FFFFFF"
     image: assets/icon/delivery_icon.png
-    icon_background_color: "#4CAF50"
 
   # iOS specific
   ios_content_mode: center
