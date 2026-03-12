@@ -16,7 +16,6 @@ import 'package:deliveryui/screens/splash/splash_screen.dart';
 import 'package:deliveryui/screens/kyc/kyc_page.dart';
 import 'core/locale_provider.dart';
 import 'core/theme/app_theme.dart';
-import 'providers/settings_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +29,6 @@ class DeliveryBoyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SettingsProvider()..init()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => NavController()),
         ChangeNotifierProvider(create: (_) => AuthController()),
@@ -54,8 +52,8 @@ class DeliveryBoyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileController()),
         ChangeNotifierProvider(create: (_) => EarningsController()),
       ],
-      child: Consumer2<LocaleProvider, SettingsProvider>(
-        builder: (context, localeProvider, settingsProvider, child) {
+      child: Consumer<LocaleProvider>(
+        builder: (context, localeProvider, child) {
           return MaterialApp(
             title: 'Tiffinity Delivery Partner',
             debugShowCheckedModeBanner: false,
