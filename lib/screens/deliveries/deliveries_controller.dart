@@ -546,7 +546,8 @@ class DeliveriesController extends ChangeNotifier {
   }
 
   /// ✅ Mark order as delivered
-  Future<bool> markDelivered(String orderId, {String? notes}) async {
+  /// ✅ Mark order as delivered
+  Future<bool> markDelivered(String orderId, {required String otp, String? notes}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -560,9 +561,11 @@ class DeliveriesController extends ChangeNotifier {
         return false;
       }
 
+      // ✅ Pass the OTP to the DeliveryService
       final result = await DeliveryService.markDelivered(
         orderId: orderId,
         deliveryPartnerId: deliveryPartnerId,
+        otp: otp, // <-- Added here!
         notes: notes,
       );
 

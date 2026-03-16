@@ -14,6 +14,7 @@ class DeliveryService {
     required String deliveryPartnerId,
     String? reason,
     String? notes,
+    String? otp, // ✅ Added optional OTP parameter
   }) async {
     try {
       debugPrint('🔄 Updating order status...');
@@ -22,6 +23,7 @@ class DeliveryService {
       debugPrint('   Partner ID: $deliveryPartnerId');
       if (reason != null) debugPrint('   Reason: $reason');
       if (notes != null) debugPrint('   Notes: $notes');
+      if (otp != null) debugPrint('   OTP: $otp'); // ✅ Debug log for OTP
 
       final response = await http
           .post(
@@ -38,6 +40,7 @@ class DeliveryService {
           'deliverypartnerid': deliveryPartnerId,
           if (reason != null) 'reason': reason,
           if (notes != null) 'notes': notes,
+          if (otp != null) 'otp': otp, // ✅ Safely passing OTP to backend
         },
       )
           .timeout(const Duration(seconds: 15));
@@ -253,11 +256,11 @@ class DeliveryService {
     );
   }
 
-
   /// 6. Mark Order as Delivered (after OTP) -> action = 'delivered'
   static Future<Map<String, dynamic>> markDelivered({
     required String orderId,
     required String deliveryPartnerId,
+    required String otp, // ✅ Required OTP from the UI
     String? notes,
   }) async {
     debugPrint('✅ Marking order as delivered...');
@@ -265,6 +268,7 @@ class DeliveryService {
       action: 'delivered',
       orderId: orderId,
       deliveryPartnerId: deliveryPartnerId,
+      otp: otp, // ✅ Passes the OTP securely into the helper
       notes: notes,
     );
   }
@@ -945,61 +949,7 @@ class DeliveryService {
     }
   }
 
-  /// 🔐 Verify delivery OTP
-  static Future<Map<String, dynamic>> verifyDeliveryOtp({
-    required String orderId,
-    required String otp,
-  }) async {
-    try {
-      debugPrint('🔐 Verifying OTP for order: $orderId');
-      debugPrint('   OTP: $otp');
-
-      final response = await http
-          .post(
-        Uri.parse('$baseUrl/delivery/verify_delivery_otp.php'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        },
-        body: {
-          'id': orderId,
-          'otp': otp,
-        },
-        encoding: Encoding.getByName('utf-8'),
-      )
-          .timeout(const Duration(seconds: 15));
-
-      debugPrint('📥 Verify OTP Status: ${response.statusCode}');
-      debugPrint('📥 Verify OTP Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        try {
-          final jsonData = jsonDecode(response.body);
-          return jsonData is Map<String, dynamic>
-              ? jsonData
-              : {
-            'success': false,
-            'message': 'Invalid server response',
-          };
-        } catch (e) {
-          debugPrint('⚠️ JSON Parse Error (verify OTP): $e');
-          return {
-            'success': false,
-            'message': 'Invalid server response',
-          };
-        }
-      } else {
-        return {
-          'success': false,
-          'message': 'Server error: ${response.statusCode}',
-        };
-      }
-    } catch (e) {
-      debugPrint('❌ Verify OTP Error: $e');
-      return {
-        'success': false,
-        'message': 'Failed to verify OTP',
-      };
-    }
-  }
+// NOTE: verifyDeliveryOtp has been completely removed because the OTP
+// is now passed to markDelivered() and securely verified directly on
+// the backend during the 'delivered' action call.
 }

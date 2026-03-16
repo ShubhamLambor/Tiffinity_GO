@@ -6,10 +6,19 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user_model.dart';
-import 'dummy_data.dart';
 
 class UserRepository {
   static const String baseUrl = "https://svtechshant.com/tiffin/api";
+
+  // Hold the current session user internally instead of using DummyData
+  UserModel _currentUser = UserModel(
+    id: '',
+    name: '',
+    email: '',
+    phone: '',
+    profilePic: '',
+    role: '',
+  );
 
   final String loginUrl;
   final String registerUrl;
@@ -43,7 +52,7 @@ class UserRepository {
 
   void clearUser() {
     print('🧹 [CLEAR_USER] Clearing old user data');
-    DummyData.user = UserModel(
+    _currentUser = UserModel(
       id: '',
       name: '',
       email: '',
@@ -57,10 +66,10 @@ class UserRepository {
   // -------- User Getters & Helpers --------
   UserModel getUser() {
     print('📋 [GET_USER] Fetching current user');
-    print('   User ID: ${DummyData.user.id}');
-    print('   Name: ${DummyData.user.name}');
-    print('   Email: ${DummyData.user.email}');
-    return DummyData.user;
+    print('   User ID: ${_currentUser.id}');
+    print('   Name: ${_currentUser.name}');
+    print('   Email: ${_currentUser.email}');
+    return _currentUser;
   }
 
   // ✅ Always fetch fresh data from SharedPreferences
@@ -86,7 +95,7 @@ class UserRepository {
       print('  Name: $userName');
       print('  Email: $userEmail');
 
-      DummyData.user = UserModel(
+      _currentUser = UserModel(
         id: userId,
         name: userName,
         email: userEmail,
@@ -96,7 +105,7 @@ class UserRepository {
       );
 
       await Future.delayed(const Duration(milliseconds: 500));
-      return DummyData.user;
+      return _currentUser;
     } catch (e) {
       print('[GETPROFILE] ❌ Error: $e');
       rethrow;
@@ -112,22 +121,22 @@ class UserRepository {
 
   void updateUserName(String newName) {
     print('✏️ [UPDATE_NAME] Updating user name to: $newName');
-    DummyData.user = DummyData.user.copyWith(name: newName);
+    _currentUser = _currentUser.copyWith(name: newName);
   }
 
   void updateProfilePic(String newUrl) {
     print('🖼️ [UPDATE_PIC] Updating profile pic to: $newUrl');
-    DummyData.user = DummyData.user.copyWith(profilePic: newUrl);
+    _currentUser = _currentUser.copyWith(profilePic: newUrl);
   }
 
   /// ✅ Restore user session from saved data (used by AuthController)
   void restoreUserSession(UserModel user) {
-    print('🔄 [RESTORE] Restoring user session to DummyData');
+    print('🔄 [RESTORE] Restoring user session');
     print('   User ID: ${user.id}');
     print('   Name: ${user.name}');
     print('   Email: ${user.email}');
     print('   Role: ${user.role}');
-    DummyData.user = user;
+    _currentUser = user;
     print('✅ [RESTORE] User session restored successfully');
   }
 
@@ -207,8 +216,8 @@ class UserRepository {
       print('   Email: ${user.email}');
       print('   Role: ${user.role}');
 
-      DummyData.user = user;
-      print('💾 [VERIFY_EMAIL_OTP] User saved to DummyData');
+      _currentUser = user;
+      print('💾 [VERIFY_EMAIL_OTP] User saved internally');
       print('════════════════════════════════════════\n');
       return user;
     } on SocketException catch (e) {
@@ -347,8 +356,8 @@ class UserRepository {
       print('   Email: ${user.email}');
       print('   Role: ${user.role}');
 
-      DummyData.user = user;
-      print('💾 [VERIFY_LOGIN_OTP] User saved to DummyData');
+      _currentUser = user;
+      print('💾 [VERIFY_LOGIN_OTP] User saved internally');
       print('════════════════════════════════════════\n');
       return user;
     } on SocketException catch (e) {
@@ -528,7 +537,7 @@ class UserRepository {
         throw Exception(data['message'] ?? 'Failed to update email');
       }
 
-      DummyData.user = DummyData.user.copyWith(email: newEmail);
+      _currentUser = _currentUser.copyWith(email: newEmail);
       print('✅ [UPDATE_EMAIL] Email updated successfully!');
       print('════════════════════════════════════════\n');
     } on SocketException catch (e) {
@@ -599,7 +608,7 @@ class UserRepository {
         throw Exception(data['message'] ?? 'Failed to update phone');
       }
 
-      DummyData.user = DummyData.user.copyWith(phone: newPhone);
+      _currentUser = _currentUser.copyWith(phone: newPhone);
       print('✅ [UPDATE_PHONE] Phone updated successfully!');
       print('════════════════════════════════════════\n');
     } on SocketException catch (e) {
@@ -916,8 +925,8 @@ class UserRepository {
       print('   Email Verified: ${user.isEmailVerified}');
       print('   Phone Verified: ${user.isPhoneVerified}');
 
-      DummyData.user = user;
-      print('💾 [LOGIN] User saved to DummyData');
+      _currentUser = user;
+      print('💾 [LOGIN] User saved internally');
 
       print('✅ [LOGIN] Login successful!');
       print('════════════════════════════════════════\n');

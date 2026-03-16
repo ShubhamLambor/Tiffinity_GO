@@ -28,6 +28,7 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
     setState(() => _isProcessing = true);
 
     try {
+      // 1. Generate the OTP first so the customer receives it
       final gen = await DeliveryService.generateDeliveryOtp(
         orderId: orderId,
         customerId: widget.order.customerId,
@@ -46,6 +47,7 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
       if (!mounted) return;
       setState(() => _isProcessing = false);
 
+      // 2. Show the Bottom Sheet for the driver to enter the OTP
       final otpController = TextEditingController();
       final enteredOtp = await showModalBottomSheet<String>(
         context: context,
@@ -109,7 +111,7 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
                         onPressed: () {
                           Navigator.pop(ctx, otpController.text.trim());
                         },
-                        child: const Text('Verify OTP', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text('Verify & Deliver', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -124,31 +126,22 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
 
       setState(() => _isProcessing = true);
 
-      final verify = await DeliveryService.verifyDeliveryOtp(
-        orderId: orderId,
-        otp: enteredOtp,
-      );
+      // 3. SECURE STEP: Call markDelivered with the OTP.
+      // The backend will verify the OTP and mark as delivered at the same time.
+      final success = await controller.markDelivered(enteredOtp);
 
-      if (verify['success'] == true) {
-        final success = await controller.markDelivered();
-        if (mounted) {
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Row(children: [Icon(Icons.celebration, color: Colors.white), SizedBox(width: 12), Text('Delivery Completed Successfully!')]),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(controller.errorMessage ?? 'Error finalizing delivery.'), backgroundColor: Colors.red),
-            );
-          }
-        }
-      } else {
-        if (mounted) {
+      if (mounted) {
+        if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(verify['message'] ?? 'Invalid OTP entered.'), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Row(children: [Icon(Icons.celebration, color: Colors.white), SizedBox(width: 12), Text('Delivery Completed Successfully!')]),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          // If the OTP was wrong, the error message from the backend (via controller) will show here
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(controller.errorMessage ?? 'Invalid OTP or finalizing error.'), backgroundColor: Colors.red),
           );
         }
       }
@@ -176,7 +169,6 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // Header Status
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -203,8 +195,6 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   const SizedBox(height: 30),
-
-                  // Customer Details Card
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -242,7 +232,6 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
             ),
           ),
 
-          // --- BUTTONS AT BOTTOM ---
           if (!delivered) ...[
             SizedBox(
               width: double.infinity,
@@ -302,7 +291,7 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Go back to Home
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black87,

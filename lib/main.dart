@@ -51,8 +51,7 @@ class DeliveryBoyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => ProfileController()),
         ChangeNotifierProvider(create: (_) => EarningsController()),
-      ],
-      child: Consumer<LocaleProvider>(
+      ],      child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, child) {
           return MaterialApp(
             title: 'Tiffinity Delivery Partner',

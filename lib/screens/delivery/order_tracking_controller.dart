@@ -146,7 +146,7 @@ class OrderTrackingController extends ChangeNotifier {
   }
 
   // Called after OTP success – PHP already uses action = 'delivered'
-  Future<bool> markDelivered() async {
+  Future<bool> markDelivered(String otp) async { // 1. Added otp parameter
     isUpdating = true;
     errorMessage = null;
     notifyListeners();
@@ -155,7 +155,9 @@ class OrderTrackingController extends ChangeNotifier {
       final result = await DeliveryService.markDelivered(
         orderId: orderId,
         deliveryPartnerId: deliveryPartnerId,
+        otp: otp, // 2. Pass the otp to the service
       );
+
       if (result['success'] == true) {
         await loadOrderDetails();
         return true;
@@ -164,7 +166,7 @@ class OrderTrackingController extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      errorMessage = 'Error updating order status';
+      errorMessage = 'Error updating order status: $e';
       return false;
     } finally {
       isUpdating = false;
