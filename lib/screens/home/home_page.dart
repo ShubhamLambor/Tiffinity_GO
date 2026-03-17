@@ -31,7 +31,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Timer? pollingTimer;
-  String? _lastShownOrderId;
+  // ✅ REMOVED: _lastShownOrderId as it caused the double-popup bug
 
   @override
   void initState() {
@@ -250,16 +250,8 @@ class _HomePageState extends State<HomePage> {
     final pending = home.pendingCount == 0 ? deliveriesController.pendingCount : home.pendingCount;
     final cancelled = home.cancelledCount == 0 ? deliveriesController.cancelledCount : home.cancelledCount;
 
-    final DeliveryModel? current = home.currentDelivery;
-
-    if (current != null && current.status == 'accepted' && _lastShownOrderId != current.id) {
-      _lastShownOrderId = current.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showNewOrderPopup(current);
-      });
-    }
-
-    if (current == null) _lastShownOrderId = null;
+    // ✅ REMOVED: The faulty logic that checked current.status == 'accepted'
+    // and fired _showNewOrderPopup twice is completely gone!
 
     final bool isOnline = home.isOnline;
     final String userName = auth.user?.name ?? 'Delivery Partner';
@@ -579,7 +571,7 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton> {
 }
 
 // ---------------------------------------------------------
-// 🛠️ WIDGET: Modern New Order Bottom Sheet (Truncated for brevity, keep your original)
+// 🛠️ WIDGET: Modern New Order Bottom Sheet
 // ---------------------------------------------------------
 class NewOrderSheet extends StatefulWidget {
   final DeliveryModel order;
@@ -704,7 +696,7 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       GeoPoint userLocation = GeoPoint(latitude: position.latitude, longitude: position.longitude);
 
-      // ✅ FIX: Move to location, wait a split second, then force a much closer zoom!
+      // ✅ Move to location, wait a split second, then force a much closer zoom!
       await _miniMapController.moveTo(userLocation, animate: true);
       await Future.delayed(const Duration(milliseconds: 300));
       await _miniMapController.setZoom(zoomLevel: 15.0); // 15.0 zooms in much closer to make the circle look BIG
@@ -810,7 +802,7 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
 
         // --- Mini Map Container ---
         GestureDetector(
-          onTap: widget.onViewMapTapped, // ✅ Triggers the same action as the "View Map" text
+          onTap: widget.onViewMapTapped,
           child: Container(
             height: 220,
             width: double.infinity,
@@ -825,7 +817,6 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
               borderRadius: BorderRadius.circular(16),
               child: Stack(
                 children: [
-                  // ✅ AbsorbPointer prevents the map from stealing your tap gesture
                   AbsorbPointer(
                     absorbing: true,
                     child: OSMFlutter(
