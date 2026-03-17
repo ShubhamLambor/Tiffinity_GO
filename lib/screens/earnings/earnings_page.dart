@@ -668,7 +668,7 @@ class _EarningsPageState extends State<EarningsPage> {
             children: [
               Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey.shade300),
               const SizedBox(height: 16),
-              Text("No wallet entries yet", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+              Text("No withdrawal requests yet", style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
             ],
           ),
         ),
@@ -679,15 +679,31 @@ class _EarningsPageState extends State<EarningsPage> {
       delegate: SliverChildBuilderDelegate(
             (context, index) {
           final item = controller.statements[index];
-          final title = item['title'] ?? 'Transaction';
-          final desc = item['description'] ?? '';
-          final credit = double.tryParse(item['credit']?.toString() ?? '0') ?? 0;
-          final debit = double.tryParse(item['debit']?.toString() ?? '0') ?? 0;
-          final date = item['created_at']?.toString() ?? '';
 
-          final isCredit = credit > 0;
-          final amountStr = isCredit ? '+₹${credit.toStringAsFixed(0)}' : '-₹${debit.toStringAsFixed(0)}';
-          final color = isCredit ? Colors.green : Colors.red.shade500;
+          // ✅ 1. Read 'amount' instead of credit/debit
+          final amount = double.tryParse(item['amount']?.toString() ?? '0') ?? 0;
+          final amountStr = '₹${amount.toStringAsFixed(0)}';
+
+          // ✅ 2. Read 'status'
+          final status = (item['status'] ?? 'pending').toString().toLowerCase();
+
+          // ✅ 3. Read the formatted date
+          final date = item['formatted_date'] ?? item['created_at']?.toString() ?? '';
+
+          // Determine UI colors based on whether it is Approved or Pending
+          Color statusColor;
+          IconData statusIcon;
+
+          if (status == 'approved' || status == 'success') {
+            statusColor = Colors.green;
+            statusIcon = Icons.check_circle;
+          } else if (status == 'rejected' || status == 'failed') {
+            statusColor = Colors.red;
+            statusIcon = Icons.cancel;
+          } else {
+            statusColor = Colors.orange;
+            statusIcon = Icons.hourglass_bottom;
+          }
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -701,20 +717,22 @@ class _EarningsPageState extends State<EarningsPage> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: isCredit ? Colors.green.shade50 : Colors.red.shade50, shape: BoxShape.circle),
-                  child: Icon(isCredit ? Icons.south_west : Icons.north_east, color: color, size: 18),
+                  decoration: BoxDecoration(color: statusColor.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(statusIcon, color: statusColor, size: 18),
                 ),
-                title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                title: const Text('Withdrawal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (desc.isNotEmpty) const SizedBox(height: 4),
-                    if (desc.isNotEmpty) Text(desc, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    const SizedBox(height: 4),
+                    // ✅ Shows "STATUS: APPROVED" in green or "STATUS: PENDING" in orange
+                    Text('Status: ${status.toUpperCase()}', style: TextStyle(fontSize: 12, color: statusColor, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text(date, style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
                   ],
                 ),
-                trailing: Text(amountStr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+                // ✅ Shows the actual amount (e.g., ₹9 or ₹100)
+                trailing: Text(amountStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
               ),
             ),
           );
