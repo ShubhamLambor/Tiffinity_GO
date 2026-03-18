@@ -250,9 +250,6 @@ class _HomePageState extends State<HomePage> {
     final pending = home.pendingCount == 0 ? deliveriesController.pendingCount : home.pendingCount;
     final cancelled = home.cancelledCount == 0 ? deliveriesController.cancelledCount : home.cancelledCount;
 
-    // ✅ REMOVED: The faulty logic that checked current.status == 'accepted'
-    // and fired _showNewOrderPopup twice is completely gone!
-
     final bool isOnline = home.isOnline;
     final String userName = auth.user?.name ?? 'Delivery Partner';
     final now = DateTime.now();
@@ -336,15 +333,42 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
+              // ===== NEW: ACTIVE DELIVERY BANNER =====
+              if (home.currentDelivery != null)
+                Transform.translate(
+                  offset: const Offset(0, -70),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Current Delivery',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActiveDeliveryCard(
+                          context,
+                          home.currentDelivery!,
+                          auth.getCurrentUserId() ?? '',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
               // ===== MAIN CONTENT (MAP & MESSES) =====
               Transform.translate(
-                offset: const Offset(0, -80),
+                offset: Offset(0, home.currentDelivery != null ? -60 : -80),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Added dynamic 5km radius map and list section.
                       NearbyMessesSection(
                         onViewMapTapped: () {
                           // You can link this to your global map screen later
@@ -383,6 +407,76 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  Widget _buildActiveDeliveryCard(BuildContext context, DeliveryModel delivery, String partnerId) {
+    return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.green.shade400, width: 2),
+            boxShadow: [
+              BoxShadow(color: Colors.green.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))
+            ]
+        ),
+        child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  // Push the user right back to the tracking screen
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => OrderTrackingScreen(
+                              orderId: delivery.id,
+                              deliveryPartnerId: partnerId
+                          )
+                      )
+                  );
+                },
+                child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), shape: BoxShape.circle),
+                          child: const Icon(Icons.delivery_dining, color: Colors.green, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8, height: 8,
+                                      decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('ACTIVE DELIVERY', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(delivery.messName ?? 'Pickup Location', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text('To: ${delivery.customerName}', style: TextStyle(color: Colors.grey[600], fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ],
+                            )
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.arrow_forward_ios, color: Colors.green, size: 16),
+                        ),
+                      ],
+                    )
+                )
+            )
+        )
+    );
+  }
 }
 
 // ===== SWIPE TOGGLE BUTTON =====
@@ -410,10 +504,8 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton> {
 
     return Opacity(
       opacity: canToggle ? 1.0 : 0.6,
-      // 1. LayoutBuilder ensures the widget fits its parent perfectly
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Fallback to screen width if constraints are unbounded
           final maxWidth = constraints.maxWidth.isFinite
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width - 40;
@@ -452,7 +544,6 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton> {
             ),
             child: Stack(
               children: [
-                // --- BACKGROUND TEXT ---
                 Row(
                   children: [
                     Expanded(
@@ -481,11 +572,9 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton> {
                     ),
                   ],
                 ),
-
-                // --- DRAGGABLE THUMB ---
                 AnimatedPositioned(
                   duration: isDragging ? Duration.zero : const Duration(milliseconds: 300),
-                  curve: Curves.easeOutBack, // Gives a nice little bounce when it snaps
+                  curve: Curves.easeOutBack,
                   left: currentPosition,
                   top: 2,
                   bottom: 2,
@@ -505,7 +594,6 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton> {
                         ? (_) {
                       setState(() {
                         isDragging = false;
-                        // 2. Added HapticFeedback for a premium tactile feel
                         if (dragPosition > maxDrag / 2 && !widget.isOnline) {
                           HapticFeedback.lightImpact();
                           widget.onToggle?.call();
@@ -669,7 +757,6 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
   late MapController _miniMapController;
   bool _isLoading = false;
 
-  // Stores the messes that fall within the 5km radius
   List<Map<String, dynamic>> _filteredMesses = [];
 
   @override
@@ -692,32 +779,27 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Get User's Current Location
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       GeoPoint userLocation = GeoPoint(latitude: position.latitude, longitude: position.longitude);
 
-      // ✅ Move to location, wait a split second, then force a much closer zoom!
       await _miniMapController.moveTo(userLocation, animate: true);
       await Future.delayed(const Duration(milliseconds: 300));
-      await _miniMapController.setZoom(zoomLevel: 15.0); // 15.0 zooms in much closer to make the circle look BIG
+      await _miniMapController.setZoom(zoomLevel: 15.0);
 
-      // 2. Draw the 5km Blue Circle
       await _miniMapController.drawCircle(
           CircleOSM(
             key: "5km_radius",
             centerPoint: userLocation,
-            radius: 5000, // 5km in meters
-            color: Colors.lightBlueAccent.withOpacity(0.2), // Transparent inner blue
+            radius: 5000,
+            color: Colors.lightBlueAccent.withOpacity(0.2),
             strokeWidth: 2,
-            borderColor: Colors.blueAccent, // Solid border
+            borderColor: Colors.blueAccent,
           )
       );
 
-      // 3. Fetch All Live Messes
       final allMesses = await MapService.fetchNearbyMesses();
       List<Map<String, dynamic>> nearby = [];
 
-      // 4. Calculate Distance and Filter (< 5km)
       for (var mess in allMesses) {
         if (mess['latitude'] != null && mess['longitude'] != null) {
           final lat = double.tryParse(mess['latitude'].toString());
@@ -728,11 +810,10 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
                 position.latitude, position.longitude, lat, lng
             );
 
-            if (distanceInMeters <= 5000) { // Keep only if under 5km
-              mess['distance'] = distanceInMeters; // Save distance for UI sorting
+            if (distanceInMeters <= 5000) {
+              mess['distance'] = distanceInMeters;
               nearby.add(mess);
 
-              // Add Marker to the Map
               await _miniMapController.addMarker(
                 GeoPoint(latitude: lat, longitude: lng),
                 markerIcon: MarkerIcon(iconWidget: _buildCustomMarker()),
@@ -742,7 +823,6 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
         }
       }
 
-      // Sort messes from nearest to farthest
       nearby.sort((a, b) => a['distance'].compareTo(b['distance']));
 
       if (mounted) {
@@ -759,7 +839,7 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
   Widget _buildCustomMarker() {
     return Container(
       decoration: BoxDecoration(
-          color: Colors.lightBlueAccent.withOpacity(0.2), // Made solid so it pops over the circle
+          color: Colors.lightBlueAccent.withOpacity(0.2),
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
@@ -781,7 +861,6 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- Header ---
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -800,7 +879,6 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
         ),
         const SizedBox(height: 12),
 
-        // --- Mini Map Container ---
         GestureDetector(
           onTap: widget.onViewMapTapped,
           child: Container(
@@ -842,7 +920,6 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
         ),
         const SizedBox(height: 16),
 
-        // --- List of Filtered Messes ---
         if (!_isLoading && _filteredMesses.isEmpty)
           Container(
             padding: const EdgeInsets.all(24),

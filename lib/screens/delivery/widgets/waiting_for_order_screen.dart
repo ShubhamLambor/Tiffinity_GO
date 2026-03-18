@@ -1,5 +1,6 @@
 // lib/screens/delivery/widgets/waiting_for_order_screen.dart
 import 'package:flutter/material.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 import '../../../models/delivery_model.dart';
 
 class WaitingForOrderScreen extends StatelessWidget {
@@ -118,27 +119,34 @@ class WaitingForOrderScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+
+          // Slider Button for Reached Pickup
           if (canReachPickup)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isUpdating
-                    ? null
-                    : () async {
-                  if (!_canReachPickup) return;
-                  await onReachedPickup();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: isUpdating
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Reached Pickup', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            isUpdating
+                ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator(strokeWidth: 3, color: Colors.green),
               ),
+            )
+                : SlideAction(
+              text: 'Slide when Reached',
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              outerColor: Colors.green,
+              innerColor: Colors.white,
+              sliderButtonIcon: const Icon(Icons.arrow_forward_ios, color: Colors.green, size: 20),
+              submittedIcon: const Icon(Icons.check, color: Colors.green),
+              borderRadius: 12,
+              elevation: 0,
+              onSubmit: () async {
+                if (!_canReachPickup) return null;
+                await onReachedPickup();
+                return null;
+              },
             ),
           const SizedBox(height: 20),
         ],

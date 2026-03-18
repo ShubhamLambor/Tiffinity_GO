@@ -1,5 +1,6 @@
 // lib/screens/delivery/widgets/pickup_screen.dart
 import 'package:flutter/material.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 import '../../../models/delivery_model.dart';
 
 class PickupScreen extends StatelessWidget {
@@ -109,21 +110,32 @@ class PickupScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: isUpdating ? null : () async { await onPickedUp(); },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-              child: isUpdating
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Order Picked Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
+          // Slider Button for Order Picked Up
+          isUpdating
+              ? const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: CircularProgressIndicator(strokeWidth: 3, color: Colors.orange),
             ),
+          )
+              : SlideAction(
+            text: 'Slide to Pick Up',
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            outerColor: Colors.orange,
+            innerColor: Colors.white,
+            sliderButtonIcon: const Icon(Icons.arrow_forward_ios, color: Colors.orange, size: 20),
+            submittedIcon: const Icon(Icons.check, color: Colors.orange),
+            borderRadius: 12,
+            elevation: 0,
+            onSubmit: () async {
+              await onPickedUp();
+              return null;
+            },
           ),
           const SizedBox(height: 20),
         ],

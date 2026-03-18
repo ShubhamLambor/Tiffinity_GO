@@ -1,6 +1,8 @@
 // lib/screens/delivery/widgets/delivery_confirmation_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:pinput/pinput.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 import '../../../models/delivery_model.dart';
 import '../../../services/delivery_service.dart';
 import '../../map/osm_navigation_screen.dart';
@@ -74,21 +76,36 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[700]),
                 ),
-                const SizedBox(height: 24),
-                TextField(
+                const SizedBox(height: 30),
+
+                // NEW: Professional Pinput Field
+                Pinput(
+                  length: 4,
                   controller: otpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    counterText: "",
-                    hintText: "••••",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.green, width: 2)),
+                  autofocus: true,
+                  defaultPinTheme: PinTheme(
+                    width: 60,
+                    height: 64,
+                    textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  focusedPinTheme: PinTheme(
+                    width: 60,
+                    height: 64,
+                    textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green, width: 2),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
+
+                const SizedBox(height: 30),
                 Row(
                   children: [
                     Expanded(
@@ -127,7 +144,6 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
       setState(() => _isProcessing = true);
 
       // 3. SECURE STEP: Call markDelivered with the OTP.
-      // The backend will verify the OTP and mark as delivered at the same time.
       final success = await controller.markDelivered(enteredOtp);
 
       if (mounted) {
@@ -139,7 +155,6 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
             ),
           );
         } else {
-          // If the OTP was wrong, the error message from the backend (via controller) will show here
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(controller.errorMessage ?? 'Invalid OTP or finalizing error.'), backgroundColor: Colors.red),
           );
@@ -267,21 +282,36 @@ class _DeliveryConfirmationScreenState extends State<DeliveryConfirmationScreen>
               ),
             ),
             const SizedBox(height: 12),
+
+            // NEW: Slider Button for triggering OTP
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: _isProcessing
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.verified_user),
-                label: Text(_isProcessing ? 'Verifying...' : 'Enter OTP & Deliver', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
+              child: _isProcessing
+                  ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.green),
                 ),
-                onPressed: _isProcessing ? null : () => _startOtpFlow(context),
+              )
+                  : SlideAction(
+                text: 'Slide to Enter OTP',
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                outerColor: Colors.green,
+                innerColor: Colors.white,
+                sliderButtonIcon: const Icon(Icons.arrow_forward_ios, color: Colors.green, size: 20),
+                submittedIcon: const Icon(Icons.lock_outline, color: Colors.green),
+                borderRadius: 12,
+                elevation: 0,
+                onSubmit: () async {
+                  // Trigger the OTP flow
+                  await _startOtpFlow(context);
+                  // Returning null automatically resets the slider
+                  return null;
+                },
               ),
             ),
           ],
