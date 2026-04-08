@@ -81,9 +81,14 @@ class HomeController extends ChangeNotifier {
       final aStatus = d.assignmentStatus.toLowerCase().trim();
       final oStatus = d.status.toLowerCase().trim();
 
-      // STRICT CHECK: The delivery partner MUST have explicitly accepted the order.
-      // We removed 'assigned', 'confirmed', and 'ready' because those mean
-      // the order is just waiting for the driver to accept it via the bottom sheet!
+      // 1. 🚨 THE GUARD CLAUSE (The Fix!) 🚨
+      // If the assignment is still waiting for the driver to accept,
+      // it is NEVER the current delivery. This ensures the NewOrderSheet popup will show!
+      if (aStatus == 'assigned' || aStatus == 'pending' || aStatus.isEmpty) {
+        return false;
+      }
+
+      // 2. Check if the driver is actively working on it
       final isActiveAssignment =
           aStatus == 'accepted' ||
               aStatus == 'at_pickup' ||
@@ -91,13 +96,11 @@ class HomeController extends ChangeNotifier {
               aStatus == 'picked_up' ||
               aStatus == 'in_transit';
 
-      // Fallback in case backend sets the main status to accepted instead of assignmentStatus
+      // 3. Fallback only if the driver has bypassed the pending stage
+      // 🚨 REMOVED: oStatus == 'accepted' (Because the restaurant sets this, not the driver!)
       final isActiveOrder =
-          oStatus == 'accepted' ||
-              oStatus == 'at_pickup' ||
-              oStatus == 'picked_up' ||
-              oStatus == 'in_transit' ||
-              oStatus == 'out_for_delivery';
+          oStatus == 'out_for_delivery' ||
+              oStatus == 'in_transit';
 
       return isActiveAssignment || isActiveOrder;
     }).toList();
@@ -450,7 +453,7 @@ class HomeController extends ChangeNotifier {
   @override
   void dispose() {
     stopPolling();
-    _locationService.dispose();
+    //_locationService.dispose();
     _newOrderController.close();
     super.dispose();
   }

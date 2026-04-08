@@ -16,7 +16,6 @@ import 'home_controller.dart';
 import '../auth/auth_controller.dart';
 import '../deliveries/deliveries_controller.dart';
 import '../map/osm_navigation_screen.dart';
-import '../chatbot/chatbot_page.dart';
 import '../../services/delivery_service.dart';
 
 // Models
@@ -296,17 +295,17 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         Row(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                              child: IconButton(icon: const Icon(Icons.support_agent, color: Colors.white, size: 26), onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatbotPage())); }),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.all(2), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                              child: CircleAvatar(radius: 20, backgroundColor: Colors.white, child: Icon(Icons.person, color: isOnline ? Colors.green : Colors.red)),
-                            ),
-                          ],
+                          // children: [
+                          //   Container(
+                          //     decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                          //     child: IconButton(icon: const Icon(Icons.support_agent, color: Colors.white, size: 26), onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatbotPage())); }),
+                          //   ),
+                          //   const SizedBox(width: 8),
+                          //   Container(
+                          //     padding: const EdgeInsets.all(2), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          //     child: CircleAvatar(radius: 20, backgroundColor: Colors.white, child: Icon(Icons.person, color: isOnline ? Colors.green : Colors.red)),
+                          //   ),
+                          // ],
                         ),
                       ],
                     ),

@@ -5,6 +5,12 @@ import 'package:geolocator/geolocator.dart';
 import 'api_service.dart';
 
 class LocationService {
+  // 👇 MAKE IT A SINGLETON: These 3 lines keep the service alive globally! 👇
+  static final LocationService _instance = LocationService._internal();
+  factory LocationService() => _instance;
+  LocationService._internal();
+  // 👆 ------------------------------------------------------------------- 👆
+
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _isTracking = false;
   String? _currentPartnerId;
@@ -94,6 +100,8 @@ class LocationService {
 
   /// Dispose and cleanup
   void dispose() {
+    // Note: Since this is a global singleton now, you generally don't want to call dispose
+    // unless the user is completely logging out of the app.
     stopLocationTracking();
   }
 }
