@@ -785,11 +785,12 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
       await Future.delayed(const Duration(milliseconds: 300));
       await _miniMapController.setZoom(zoomLevel: 15.0);
 
+      // ✅ CHANGED: Radius from 5000 to 3000 meters
       await _miniMapController.drawCircle(
           CircleOSM(
-            key: "5km_radius",
+            key: "3km_radius",
             centerPoint: userLocation,
-            radius: 5000,
+            radius: 3000,
             color: Colors.lightBlueAccent.withOpacity(0.2),
             strokeWidth: 2,
             borderColor: Colors.blueAccent,
@@ -809,7 +810,8 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
                 position.latitude, position.longitude, lat, lng
             );
 
-            if (distanceInMeters <= 5000) {
+            // ✅ CHANGED: Filter condition from 5000 to 3000 meters
+            if (distanceInMeters <= 3000) {
               mess['distance'] = distanceInMeters;
               nearby.add(mess);
 
@@ -867,7 +869,7 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Active Messes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                Text('Within 5km pickup radius', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text('Within 3km pickup radius', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
             TextButton(
@@ -924,7 +926,7 @@ class _NearbyMessesSectionState extends State<NearbyMessesSection> {
             padding: const EdgeInsets.all(24),
             alignment: Alignment.center,
             decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(16)),
-            child: const Text('No active messes found within 5km.', style: TextStyle(color: Colors.grey)),
+            child: const Text('No active messes found within 3km.', style: TextStyle(color: Colors.grey)),
           ),
 
         if (_filteredMesses.isNotEmpty)
