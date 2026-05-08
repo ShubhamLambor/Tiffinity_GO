@@ -81,12 +81,14 @@ class HomeController extends ChangeNotifier {
       final aStatus = d.assignmentStatus.toLowerCase().trim();
       final oStatus = d.status.toLowerCase().trim();
 
-      // 1. 🚨 THE GUARD CLAUSE (The Fix!) 🚨
-      // If the assignment is still waiting for the driver to accept,
-      // it is NEVER the current delivery. This ensures the NewOrderSheet popup will show!
-      if (aStatus == 'assigned' || aStatus == 'pending' || aStatus.isEmpty) {
+      // 1. 🚨 THE GUARD CLAUSE 🚨
+      // If the assignment is waiting to be accepted, or if it was PASSED,
+      // it is NEVER the current active delivery.
+      if (aStatus == 'assigned' || aStatus == 'pending' || aStatus == 'passed' || aStatus.isEmpty) {
         return false;
       }
+
+      // ... rest of the logic remains the same
 
       // 2. Check if the driver is actively working on it
       final isActiveAssignment =

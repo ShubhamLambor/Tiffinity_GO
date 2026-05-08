@@ -163,6 +163,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ✅ NEW: Auto-reject flow (no confirmation dialog needed!)
+  // ✅ UPDATED: Auto-pass flow utilizing the new Radial Dispatch Engine
   Future<void> _handleAutoRejectFlow(String orderId, String partnerId) async {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -175,14 +176,13 @@ class _HomePageState extends State<HomePage> {
     }
 
     try {
-      // Hits your perfectly built reject_assignment.php silently in the background
-      await DeliveryService.rejectOrder(
-          orderId: orderId,
-          deliveryPartnerId: partnerId,
-          reason: 'Auto-rejected: Missed 30-second window'
+      // Hits the new 'passed' state in your order_delivery_status.php
+      await DeliveryService.passOrder(
+        orderId: orderId,
+        deliveryPartnerId: partnerId,
       );
     } catch (e) {
-      debugPrint('Auto reject error: $e');
+      debugPrint('Auto pass error: $e');
     }
   }
 

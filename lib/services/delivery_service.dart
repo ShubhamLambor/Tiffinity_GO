@@ -189,6 +189,7 @@ class DeliveryService {
 
   // ===== DELIVERY LIFE CYCLE ACTIONS (MAPPED TO PHP) =====
 
+
   /// 1. Accept Order -> action = 'accept'
   static Future<Map<String, dynamic>> acceptOrder({
     required String orderId,
@@ -237,6 +238,20 @@ class DeliveryService {
       debugPrint('❌ Reject API Error: $e');
       return {'success': false, 'message': 'Failed to reject order.'};
     }
+  }
+
+  /// 2.5. Pass Order (Timeout) -> action = 'passed'
+  static Future<Map<String, dynamic>> passOrder({
+    required String orderId,
+    required String deliveryPartnerId,
+  }) async {
+    debugPrint('⏳ Passing order (Timeout)...');
+    return _updateStatus(
+      action: 'passed',
+      orderId: orderId,
+      deliveryPartnerId: deliveryPartnerId,
+      notes: 'Auto-passed: Missed 30-second window',
+    );
   }
 
   /// 3. Mark Reached Pickup Location -> action = 'reached_pickup'
