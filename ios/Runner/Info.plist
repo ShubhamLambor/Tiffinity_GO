@@ -2,18 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>This app needs location access to track delivery routes</string>
-<key>NSLocationAlwaysUsageDescription</key>
-<string>This app needs background location access to track deliveries</string>
-<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>This app needs location access for real-time delivery tracking</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Tiffinity Go needs location access to track delivery routes and calculate ETAs for customers.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Tiffinity Go requires background location access to track deliveries even when the app is in the background.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Tiffinity Go requires location tracking for real-time delivery routing.</string>
 
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+
+	<key>NSCameraUsageDescription</key>
+	<string>Tiffinity Go requires access to your camera to capture profile photos and delivery proofs.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Tiffinity Go requires access to your photo library to upload KYC documents and profile images.</string>
+
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>comgooglemaps</string>
+		<string>iosamap</string>
+		<string>https</string>
+		<string>http</string>
+	</array>
 
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Deliveryui</string>
+	<string>Tiffinity Go</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +39,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>deliveryui</string>
+	<string>tiffinity_go</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
